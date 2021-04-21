@@ -12,6 +12,7 @@ import scipy.io as sio
 import tensorflow as tf
 
 
+
 def generate_meanfilter_training_pipeline(tfr_path, channels, n_modes, filter_size, validation_split=0.2, batch_size=8, shuffle_buffer=400, n_prefetch=4, cpu=False):
 
     # List all files in tfr_path folder
@@ -112,6 +113,33 @@ def generate_meanfilter_training_pipeline(tfr_path, channels, n_modes, filter_si
     return dataset_train, dataset_valid
 
 
+def mean_filter(A, filter_size):
+    channel, n_z, n_x = A.shape
+    n_z = 64
+    n_x = 128
+    rows = n_z//filter_size
+    cols = n_x//filter_size
+    block = tf.zeros([filter_size, filter_size])
+    img = np.zeros((channel, rows,cols))
+    vector = []
+    for ch in range(0,channel):
+        for j in range(0, n_x - filter_size + 1, filter_size):
+            for i in  range(0,n_z - filter_size + 1, filter_size):
+                block = A[ch, i:i+filter_size, j:j+filter_size]
+                block_mean = tf.reduce_mean(block)
+                vector.append(block_mean)
+                #vector = np.array(vector,block_mean)
+
+
+    img = tf.reshape(vector, (channel, rows, cols))
+    print(img.shape)
+    #img = tf.convert_to_tensor(img)
+    return img
+
+
+
+
+
 @tf.function
 def tf_parser_training(rec, tfr_path, channels, n_modes, filter_size):
     '''
@@ -156,7 +184,8 @@ def tf_parser_training(rec, tfr_path, channels, n_modes, filter_size):
         inputs = tf.concat((inputs, tf.reshape((parsed_rec[f'wall_raw{i_comp+1}']-avgs_wall[i_comp])/stds_wall[i_comp],(1,nz, nx))),0)
 
     outputs = parsed_rec['psi'][:n_modes]
-    inputs = inputs[:,::filter_size,::filter_size]
+    #inputs = inputs[:,::filter_size,::filter_size]
+    inputs = mean_filter(inputs,filter_size)
     return inputs, outputs
 
 
@@ -204,6 +233,6 @@ def tf_parser_training_cpu(rec, tfr_path, channels, n_modes, filter_size):
         inputs = tf.concat((inputs, tf.reshape((parsed_rec[f'wall_raw{i_comp+1}']-avgs_wall[i_comp])/stds_wall[i_comp],(nz, nx, 1))),-1)
 
     outputs = parsed_rec['psi'][:n_modes]
-    inputs = inputs[:,::filter_size,::filter_size]
+    inputs = mean_filter(inputs,filter_size)
 
     return inputs, outputs

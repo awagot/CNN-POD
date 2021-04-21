@@ -110,11 +110,11 @@ if __name__ == "__main__":
     channels = 3 
     n_prefetch = 4
     batch_size = 50
-    downsample_value = 2
-    filter_size = 2
+    downsample_value = 16
+    filter_size = 16
     save_path = ""
     path_mat = "/home/awag/Documents/TFG/MAT/"
-    model_name = "meanfilter2"
+    model_name = "downsample16"
     tfr_path = "/home/awag/Documents/TFG/DATA/TFRECORD/D15"
     shuffle_buffer = 5000
     validation_split = 0.2

@@ -29,6 +29,7 @@ from pipelines import generate_meanfilter_training_pipeline
 from training import training_loop
 
 
+
 def main():
     #dataset_train, dataset_valid = generate_default_training_pipeline(tfr_path, channels, n_modes, validation_split, batch_size, shuffle_buffer, n_prefetch, cpu=False)
     """
@@ -105,9 +106,9 @@ if __name__ == "__main__":
     n_prefetch = 4
     batch_size = 50
     save_path = ""
-    model_name = "downsample2"
-    downsample_value = 2
-    filter_size = 2
+    model_name = "downsample16"
+    downsample_value = 16
+    filter_size = 16
     tfr_path = "/home/awag/Documents/TFG/DATA/TFRECORD/D15"
     shuffle_buffer = 5000
     validation_split = 0.2
