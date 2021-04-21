@@ -123,20 +123,16 @@ def mean_filter(A, filter_size):
     img = np.zeros((channel, rows,cols))
     vector = []
     for ch in range(0,channel):
-        for j in range(0, n_x - filter_size + 1, filter_size):
-            for i in  range(0,n_z - filter_size + 1, filter_size):
-                block = A[ch, i:i+filter_size, j:j+filter_size]
+        for j in range(0, n_z - filter_size + 1, filter_size):
+            for i in  range(0,n_x - filter_size + 1, filter_size):
+                block = A[ch, j:j+filter_size,i:i+filter_size]
                 block_mean = tf.reduce_mean(block)
                 vector.append(block_mean)
-                #vector = np.array(vector,block_mean)
-
 
     img = tf.reshape(vector, (channel, rows, cols))
     print(img.shape)
     #img = tf.convert_to_tensor(img)
     return img
-
-
 
 
 

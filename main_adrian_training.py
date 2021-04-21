@@ -106,7 +106,7 @@ if __name__ == "__main__":
     n_prefetch = 4
     batch_size = 50
     save_path = ""
-    model_name = "downsample16"
+    model_name = "meanfilter16"
     downsample_value = 16
     filter_size = 16
     tfr_path = "/home/awag/Documents/TFG/DATA/TFRECORD/D15"
