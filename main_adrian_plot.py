@@ -16,8 +16,8 @@ def main():
     X_d8, Y_d8, Z_d8 = load_data("downsample8")
     corr_coeff_d8 = correlation_coefficient(Y_d8,Z_d8)
 
-    X_d16, Y_d16, Z_d16 = load_data("downsample16")
-    corr_coeff_d16 = correlation_coefficient(Y_d16,Z_d16)
+    #X_d16, Y_d16, Z_d16 = load_data("downsample16")
+    #corr_coeff_d16 = correlation_coefficient(Y_d16,Z_d16)
 
     X_m2, Y_m2, Z_m2 = load_data("meanfilter2")
     corr_coeff_m2 = correlation_coefficient(Y_m2,Z_m2)
@@ -28,36 +28,49 @@ def main():
     X_m8, Y_m8, Z_m8 = load_data("meanfilter8")
     corr_coeff_m8 = correlation_coefficient(Y_m8,Z_m8)
 
-    X_m16, Y_m16, Z_m16 = load_data("meanfilter16")
-    corr_coeff_m16 = correlation_coefficient(Y_m16,Z_m16)
+    #X_m16, Y_m16, Z_m16 = load_data("meanfilter16")
+    #corr_coeff_m16 = correlation_coefficient(Y_m16,Z_m16)
 
 
-    fig, axes = plt.subplots(8)
-    custom_plot(modes,corr_coeff_d2, axes[0])
-    custom_plot(modes,corr_coeff_m2, axes[1])
-    custom_plot(modes,corr_coeff_d4, axes[2])
-    custom_plot(modes,corr_coeff_m4, axes[3])
-    custom_plot(modes,corr_coeff_d8, axes[4])
-    custom_plot(modes,corr_coeff_m8, axes[5])
-    custom_plot(modes,corr_coeff_d16, axes[6])
-    custom_plot(modes,corr_coeff_m16, axes[7])
+    fig, axes = plt.subplots(6)
+    custom_plot(modes,corr_coeff_d2, axes[0], "Downsample 2")
+    custom_plot(modes,corr_coeff_m2, axes[1], "Mean Filter 2")
+    custom_plot(modes,corr_coeff_d4, axes[2], "Downsample 4")
+    custom_plot(modes,corr_coeff_m4, axes[3], "Mean Filter 4")
+    custom_plot(modes,corr_coeff_d8, axes[4], "Downsample 8")
+    custom_plot(modes,corr_coeff_m8, axes[5], "Mean Filter 8")
+    #custom_plot(modes,corr_coeff_d16, axes[6])
+    #custom_plot(modes,corr_coeff_m16, axes[7])
     plt.show()
 
-    fig1, axes = plt.subplots(8,4)
-    custom_plot3(Y_d2,Z_d4,axes[0,0], axes[0,1], axes[0,2],axes[0,3])
-    custom_plot3(Y_d4,Z_d4,axes[1,0], axes[1,1], axes[1,2],axes[1,3])
-    custom_plot3(Y_d8,Z_d8,axes[2,0], axes[2,1], axes[2,2],axes[2,3])
-    custom_plot3(Y_d16,Z_d16,axes[3,0], axes[3,1], axes[3,2],axes[3,3])
-    custom_plot3(Y_m2,Z_m4,axes[4,0], axes[4,1], axes[4,2],axes[4,3])
-    custom_plot3(Y_m4,Z_m4,axes[5,0], axes[5,1], axes[5,2],axes[5,3])
-    custom_plot3(Y_m8,Z_m8,axes[6,0], axes[6,1], axes[6,2],axes[6,3])
-    custom_plot3(Y_m16,Z_m16,axes[7,0], axes[7,1], axes[7,2],axes[7,3])
+    fig1, axes = plt.subplots(6,4)
+    custom_plot3(Y_d2,Z_d4,axes[0,0], axes[0,1], axes[0,2],axes[0,3], "Downsample 2")
+    custom_plot3(Y_d4,Z_d4,axes[1,0], axes[1,1], axes[1,2],axes[1,3], "Downsample 4")
+    custom_plot3(Y_d8,Z_d8,axes[2,0], axes[2,1], axes[2,2],axes[2,3], "Downsample 8")
+    #custom_plot3(Y_d16,Z_d16,axes[3,0], axes[3,1], axes[3,2],axes[3,3])
+    custom_plot3(Y_m2,Z_m4,axes[3,0], axes[3,1], axes[3,2],axes[3,3], "Mean Filter 2")
+    custom_plot3(Y_m4,Z_m4,axes[4,0], axes[4,1], axes[4,2],axes[4,3], "Mean Filter 4")
+    custom_plot3(Y_m8,Z_m8,axes[5,0], axes[5,1], axes[5,2],axes[5,3], "Mean_Filter 8")
+    #custom_plot3(Y_m16,Z_m16,axes[7,0], axes[7,1], axes[7,2],axes[7,3])
 
 
     plt.show()
 
 
-
+    fig2, axes = plt.subplots(6)
+    axes[0].imshow(X_d2[0,0,:,:])
+    axes[0].set_title('Downsample 2')
+    axes[1].imshow(X_m2[0,0,:,:])
+    axes[1].set_title('Mean Filter 2')
+    axes[2].imshow(X_d4[0,0,:,:])
+    axes[2].set_title('Downsample 2')
+    axes[3].imshow(X_m4[0,0,:,:])
+    axes[3].set_title('Mean Filter 4')
+    axes[4].imshow(X_d8[0,0,:,:])
+    axes[4].set_title('Downsample 2')
+    axes[5].imshow(X_m8[0,0,:,:])
+    axes[5].set_title('Mean Filter 8')
+    plt.show()
 
 
 
@@ -95,6 +108,7 @@ def custom_plot(x, y, ax=None, title = "" , **plt_kwargs):
 
     ax.plot(x, y, **plt_kwargs) ## example plot here
     ax.set_title(title)
+    ax.set_ylim(0,1)
     return(ax)
 
 def custom_plot2( y, ax=None, title = "" , **plt_kwargs):
@@ -105,16 +119,16 @@ def custom_plot2( y, ax=None, title = "" , **plt_kwargs):
     ax.set_title(title)
     return(ax)
 
-def custom_plot3( Y,Z ,ax0=None, ax1=None, ax2=None, ax3=None ,title = "" , **plt_kwargs):
+def custom_plot3( Y,Z ,ax0=None, ax1=None, ax2=None, ax3=None ,title = "", **plt_kwargs):
 
-    custom_plot2(Z[:,0], ax0)
-    custom_plot2(Y[:,0], ax0,'',linestyle = '', marker = 'o')
-    custom_plot2(Z[:,1], ax1)
-    custom_plot2(Y[:,1], ax1,'',linestyle = '', marker = 'o')
-    custom_plot2(Z[:,4], ax2)
-    custom_plot2(Y[:,4], ax2,'',linestyle = '', marker = 'o')
-    custom_plot2(Z[:,9], ax3)
-    custom_plot2(Y[:,9], ax3,'',linestyle = '', marker = 'o')
+    custom_plot2(Z[:,0], ax0, title)
+    custom_plot2(Y[:,0], ax0,title,linestyle = '', marker = 'o')
+    custom_plot2(Z[:,1], ax1, title)
+    custom_plot2(Y[:,1], ax1,"Mode 2",linestyle = '', marker = 'o')
+    custom_plot2(Z[:,4], ax2, title)
+    custom_plot2(Y[:,4], ax2,"Mode 5",linestyle = '', marker = 'o')
+    custom_plot2(Z[:,9], ax3, title)
+    custom_plot2(Y[:,9], ax3,"Mode 10",linestyle = '', marker = 'o')
     return ax0, ax1, ax2, ax3
 
 

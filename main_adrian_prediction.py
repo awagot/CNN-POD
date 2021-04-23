@@ -28,7 +28,7 @@ from pipelines import generate_downsampling_training_pipeline
 from pipelines import generate_meanfilter_training_pipeline
 from training import training_loop
 import numpy as np
-
+import matplotlib.pyplot as plt
 def main():
 
     """
@@ -37,7 +37,7 @@ def main():
 
     if model_name == "downsample2" or model_name == "downsample4" or model_name == "downsample8" or model_name == "downsample16":
         print('Downsampling')
-        dataset = generate_downsampling_training_pipeline(tfr_path, channels, n_modes, downsample_value, validation_split, batch_size, shuffle_buffer, n_prefetch, cpu=False)[1]
+        dataset2, dataset = generate_downsampling_training_pipeline(tfr_path, channels, n_modes, downsample_value, validation_split, batch_size, shuffle_buffer, n_prefetch, cpu=False)
         n_z = nz//downsample_value
         n_x = nx//downsample_value
     if model_name == "meanfilter2" or model_name == "meanfilter4" or model_name == "meanfilter8" or model_name == "meanfilter16":
@@ -68,8 +68,10 @@ def main():
         Z[a:a+batch_size,:] = z
         
     print(Z.shape, X.shape, Y.shape)
-    filename = f"{path_mat}{model_name}.npz"
-    np.savez(filename, X = X, Y = Y, Z = Z)
+    plt.imshow(X[0,0,:,:])
+    plt.show()
+    #filename = f"{path_mat}{model_name}.npz"
+    #np.savez(filename, X = X, Y = Y, Z = Z)
 
 
     return
@@ -110,11 +112,11 @@ if __name__ == "__main__":
     channels = 3 
     n_prefetch = 4
     batch_size = 50
-    downsample_value = 16
+    downsample_value = 2
     filter_size = 16
     save_path = ""
     path_mat = "/home/awag/Documents/TFG/MAT/"
-    model_name = "downsample16"
+    model_name = "downsample2"
     tfr_path = "/home/awag/Documents/TFG/DATA/TFRECORD/D15"
     shuffle_buffer = 5000
     validation_split = 0.2
