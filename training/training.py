@@ -80,12 +80,10 @@ def training_loop(dataset_train, dataset_valid, save_path, model_name, model, op
             loss = valid_step(x_target, y_target, model, model_loss)  
             valid_loss.update_state(loss)
 
-        # if epoch > 10:
-        
-        #     optimizer.lr = 0.001 * tf.math.exp(0.1 * (10 - epoch))
+        if epoch > 10:
+            optimizer.lr = 0.001 * tf.math.exp(0.1 * (10 - epoch))
 
         if epoch % saving_freq == 0:
-
             checkpoint.save(file_prefix = checkpoint_prefix)
                 
         end_time = time.time()

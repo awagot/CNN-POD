@@ -24,8 +24,8 @@ if physical_devices:
 import time
 from models import model_cnn_mlp
 from pipelines import generate_default_training_pipeline
-from pipelines import generate_downsampling_training_pipeline
-from pipelines import generate_meanfilter_training_pipeline
+from pipelines import generate_downsampling_prediction_pipeline
+from pipelines import generate_meanfilter_prediction_pipeline
 from training import training_loop
 import numpy as np
 import matplotlib.pyplot as plt
@@ -37,7 +37,7 @@ def main():
 
     if model_name == "downsample2" or model_name == "downsample4" or model_name == "downsample8" or model_name == "downsample16":
         print('Downsampling')
-        dataset2, dataset = generate_downsampling_training_pipeline(tfr_path, channels, n_modes, downsample_value, validation_split, batch_size, shuffle_buffer, n_prefetch, cpu=False)
+        dataset2, dataset = generate_downsampling_prediction_pipeline(tfr_path, channels, n_modes, downsample_value, validation_split, batch_size, shuffle_buffer, n_prefetch, cpu=False)
         n_z = nz//downsample_value
         n_x = nx//downsample_value
     if model_name == "meanfilter2" or model_name == "meanfilter4" or model_name == "meanfilter8" or model_name == "meanfilter16":
@@ -67,11 +67,12 @@ def main():
         Y[a:a+batch_size,:] = y
         Z[a:a+batch_size,:] = z
         
-    print(Z.shape, X.shape, Y.shape)
-    plt.imshow(X[0,0,:,:])
-    plt.show()
-    #filename = f"{path_mat}{model_name}.npz"
-    #np.savez(filename, X = X, Y = Y, Z = Z)
+    #print(Z.shape, X.shape, Y.shape)
+    #
+    # plt.imshow(X[0,0,:,:])
+    #plt.show()
+    filename = f"{path_mat}{model_name}.npz"
+    np.savez(filename, X = X, Y = Y, Z = Z)
 
 
     return
@@ -112,12 +113,12 @@ if __name__ == "__main__":
     channels = 3 
     n_prefetch = 4
     batch_size = 50
-    downsample_value = 2
-    filter_size = 16
-    save_path = ""
+    downsample_value = 4
+    filter_size = 2
+    save_path = "/home/awag/Documents/TFG/Checkpoints/D15/"
     path_mat = "/home/awag/Documents/TFG/MAT/"
-    model_name = "downsample2"
-    tfr_path = "/home/awag/Documents/TFG/DATA/TFRECORD/D15"
+    model_name = 'meanfilter2'
+    tfr_path = "/home/awag/Documents/TFG/DATA/TFRECORD/D15/PREDICT"
     shuffle_buffer = 5000
     validation_split = 0.2
 

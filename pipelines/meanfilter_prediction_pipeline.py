@@ -13,7 +13,7 @@ import tensorflow as tf
 
 
 
-def generate_meanfilter_training_pipeline(tfr_path, channels, n_modes, filter_size, validation_split=0.2, batch_size=8, shuffle_buffer=400, n_prefetch=4, cpu=False):
+def generate_meanfilter_prediction_pipeline(tfr_path, channels, n_modes, filter_size, validation_split=0.2, batch_size=8, shuffle_buffer=400, n_prefetch=4, cpu=False):
 
     # List all files in tfr_path folder
 
