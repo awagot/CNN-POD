@@ -56,7 +56,7 @@ def run_training(model_name, ksize):
         n_x = nx//ksize
     if model_name == "gaussianfilter2" or model_name == "gaussianfilter4" or model_name == "gaussianfilter8" or model_name == "gaussianfilter16":
         print('Gaussian Filter', ksize)
-        dataset_train, dataset_valid = generate_gaussianfilter_training_pipeline(tfr_path, channels, n_modes, ksize, validation_split, batch_size, shuffle_buffer, n_prefetch, cpu=False)
+        dataset_train, dataset_valid = generate_gaussianfilter_training_pipeline(tfr_path, channels, n_modes, ksize, order_noise = 0, validation_split, batch_size, shuffle_buffer, n_prefetch, cpu=False)
         n_z = nz//ksize
         n_x = nx//ksize
     if model_name == 'No Filter':
