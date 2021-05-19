@@ -15,8 +15,7 @@ import cv2
 
 
 
-def generate_meanfilter_training_pipeline(tfr_path, channels, n_modes, filter_size, validation_split=0.2, batch_size=8, shuffle_buffer=400, n_prefetch=4, cpu=False):
-
+def generate_gaussianfilter_training_pipeline(tfr_path, channels, n_modes, filter_size,order_noise = 0, validation_split=0.2, batch_size=8, shuffle_buffer=400, n_prefetch=4, cpu=False):
     # List all files in tfr_path folder
 
     tfr_files = sorted([os.path.join(tfr_path,f) for f in os.listdir(tfr_path) if os.path.isfile(os.path.join(tfr_path,f))])
@@ -96,13 +95,13 @@ def generate_meanfilter_training_pipeline(tfr_path, channels, n_modes, filter_si
 
     if cpu:
 
-        dataset_train = tfr_files_train_ds.map(lambda x: tf_parser_training_cpu(x, tfr_path, channels, n_modes, filter_size), num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        dataset_valid = tfr_files_val_ds.map(lambda x: tf_parser_training_cpu(x, tfr_path, channels, n_modes, filter_size), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        dataset_train = tfr_files_train_ds.map(lambda x: tf_parser_training_cpu(x, tfr_path, channels, n_modes, filter_size, order_noise), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        dataset_valid = tfr_files_val_ds.map(lambda x: tf_parser_training_cpu(x, tfr_path, channels, n_modes, filter_size, order_noise), num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     else:
 
-        dataset_train = tfr_files_train_ds.map(lambda x: tf_parser_training(x, tfr_path, channels, n_modes, filter_size), num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        dataset_valid = tfr_files_val_ds.map(lambda x: tf_parser_training(x, tfr_path, channels, n_modes, filter_size), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        dataset_train = tfr_files_train_ds.map(lambda x: tf_parser_training(x, tfr_path, channels, n_modes, filter_size, order_noise), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        dataset_valid = tfr_files_val_ds.map(lambda x: tf_parser_training(x, tfr_path, channels, n_modes, filter_size, order_noise), num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     dataset_train = dataset_train.shuffle(shuffle_buffer)
     dataset_train = dataset_train.batch(batch_size=batch_size)
@@ -115,59 +114,24 @@ def generate_meanfilter_training_pipeline(tfr_path, channels, n_modes, filter_si
     return dataset_train, dataset_valid
 
 
-def mean_filter(A, filter_size):
-    channel, n_z, n_x = A.shape
+
+
+
+
+def filtering(A,filter_size):
+    channel = 3
     n_z = 64
     n_x = 128
-    rows = n_z//filter_size
-    cols = n_x//filter_size
-    block = tf.zeros([filter_size, filter_size])
-    img = np.zeros((channel, rows,cols))
-    vector = []
-    for ch in range(0,channel):
-        for j in range(0, n_z - filter_size + 1, filter_size):
-            for i in  range(0,n_x - filter_size + 1, filter_size):
-                block = A[ch, j:j+filter_size,i:i+filter_size]
-                block_mean = tf.reduce_mean(block)
-                vector.append(block_mean)
-
-    img = tf.reshape(vector, (channel, rows, cols))
-    print(img.shape)
-    #img = tf.convert_to_tensor(img)
-    return img
-
-
-def mean_filter2(A, filter_size):
-    channel, n_z, n_x = A.shape
-    n_z = 64
-    n_x = 128
-    rows = n_z//filter_size
-    cols = n_x//filter_size
-    block = tf.zeros([filter_size, filter_size])
-    img = np.zeros((channel, rows,cols))
-    vector = []
-    #kernel = tf.ones([filter_size, filter_size])
-    #kernel = kernel/filter_size**2
-    F_1 = cv2.getGaussianKernel(ksize=filter_size,sigma=2)
-    kernel = F_1*np.transpose(F_1)
-    for ch in range(0,channel):
-        for j in range(0, n_z - filter_size + 1, filter_size):
-            for i in range(0,n_x - filter_size + 1, filter_size):
-                block = A[ch, j:j+filter_size,i:i+filter_size]
-                block_mean = tf.reduce_sum(block*kernel)
-                print(block_mean)
-                #block_mean = tf.reduce_mean(block)
-                vector.append(block_mean)
-
-    img = tf.reshape(vector, (channel, rows, cols))
-    print(img.shape)
-    #img = tf.convert_to_tensor(img)
-    return img
+    F_1 = cv2.getGaussianKernel(ksize=filter_size,sigma=1)
+    kernel_in = F_1*np.transpose(F_1)
+    kernel = tf.constant(kernel_in, dtype=tf.float32)
+    img  = tf.nn.conv2d(tf.expand_dims(tf.expand_dims(A,axis = 0),axis = 3), kernel, strides=[1, 1, 1, 1], padding='SAME')
+    return img[0,:,:,0]
 
 
 
 @tf.function
-def tf_parser_training(rec, tfr_path, channels, n_modes, filter_size):
+def tf_parser_training(rec, tfr_path, channels, n_modes, filter_size,order_noise):
     '''
     This is a parser function. It defines the template for
     interpreting the examples you're feeding in. Basically, 
@@ -202,19 +166,17 @@ def tf_parser_training(rec, tfr_path, channels, n_modes, filter_size):
 
     avgs_wall = tf.constant(data['mean_inputs'].astype(np.float32))
     stds_wall = tf.constant(data['std_inputs'].astype(np.float32))
-    #wall1 = tf.reshape(parsed_rec['wall_raw1']-avgs_wall[0]/stds_wall[0],(nz//filter_size, nx//filter_size))
-    #wall1_1 = filtering(wall1,filter_size)
-
-    inputs = tf.reshape((parsed_rec['wall_raw1']-avgs_wall[0])/stds_wall[0],(1,nz, nx))
-
-    for i_comp in range(1, channels):
-
-        inputs = tf.concat((inputs, tf.reshape((parsed_rec[f'wall_raw{i_comp+1}']-avgs_wall[i_comp])/stds_wall[i_comp],(1,nz, nx))),0)
+    inputs1 = filtering(tf.reshape((parsed_rec[f'wall_raw1']-avgs_wall[0])/stds_wall[0],(nz,nx)),filter_size)
+    if channels ==2:
+        inputs2 = filtering(tf.reshape((parsed_rec[f'wall_raw2']-avgs_wall[1])/stds_wall[1],(nz,nx)), filter_size)
+        inputs = tf.stack([inputs1, inputs2], axis = 0)
+    if channels == 3:
+        inputs2 = filtering(tf.reshape((parsed_rec[f'wall_raw2']-avgs_wall[1])/stds_wall[1],(nz,nx)), filter_size)
+        inputs3 = filtering(tf.reshape((parsed_rec[f'wall_raw3']-avgs_wall[2])/stds_wall[2],(nz,nx)), filter_size)
+        inputs = tf.stack([inputs1, inputs2,inputs3], axis = 0)
 
     outputs = parsed_rec['psi'][:n_modes]
-    #inputs = inputs[:,::filter_size,::filter_size]
-    inputs = mean_filter(inputs,filter_size)
-    #inputs = cv2.blur(inputs,(filter_size,filter_size))
+    inputs = inputs[:,::filter_size,::filter_size] + order_noise*tf.random.uniform([channels, nz//filter_size, nx//filter_size])
     return inputs, outputs
 
 
@@ -262,59 +224,34 @@ def tf_parser_training_cpu(rec, tfr_path, channels, n_modes, filter_size):
         inputs = tf.concat((inputs, tf.reshape((parsed_rec[f'wall_raw{i_comp+1}']-avgs_wall[i_comp])/stds_wall[i_comp],(nz, nx, 1))),-1)
 
     outputs = parsed_rec['psi'][:n_modes]
-    inputs = mean_filter(inputs,filter_size)
+    inputs = gaussian_filter(inputs,filter_size,nz,nx, channels, kernel)
 
     return inputs, outputs
 
 
+def gaussian_filter(A, filter_size, n_z, n_x):
+    channel, na, nb = A.shape
 
+    n_z = 64
+    n_x = 128
+    rows = n_z//filter_size
+    cols = n_x//filter_size
+    block = tf.zeros([filter_size, filter_size])
+    img = np.zeros((channel, rows, cols))
+    vector = []
+    if filter_size == 2:
+        kernel = tf.ones([filter_size, filter_size])
+    else:
+        F_1 = cv2.getGaussianKernel(ksize=filter_size,sigma=1)
+        kernel = F_1*np.transpose(F_1)
+    for ch in range(0,channel):
+        for j in range(0, n_z - filter_size + 1, filter_size):
+            for i in range(0,n_x - filter_size + 1, filter_size):
+                block = A[ch, j:j+filter_size,i:i+filter_size]
+                block_mean = tf.reduce_sum(block*kernel)
+                vector.append(block_mean)
 
-    #####
-
-@tf.function
-def tf_parser_training2(rec, tfr_path, channels, n_modes, filter_size):
-    '''
-    This is a parser function. It defines the template for
-    interpreting the examples you're feeding in. Basically, 
-    this function defines what the labels and data look like
-    for your labeled data. 
-    '''
-    features = {
-        'i_samp': tf.io.FixedLenFeature([], tf.int64),
-        'n_x': tf.io.FixedLenFeature([], tf.int64),
-        'n_z': tf.io.FixedLenFeature([], tf.int64),
-        'wall_raw1': tf.io.FixedLenSequenceFeature([], tf.float32, allow_missing=True),
-        'wall_raw2': tf.io.FixedLenSequenceFeature([], tf.float32, allow_missing=True),
-        'wall_raw3': tf.io.FixedLenSequenceFeature([], tf.float32, allow_missing=True),
-        'flow_raw1': tf.io.FixedLenSequenceFeature([], tf.float32, allow_missing=True),
-        'flow_raw2': tf.io.FixedLenSequenceFeature([], tf.float32, allow_missing=True),
-        'flow_raw3': tf.io.FixedLenSequenceFeature([], tf.float32, allow_missing=True),
-        'psi': tf.io.FixedLenSequenceFeature([], tf.float32, allow_missing=True)
-        }
-
-    parsed_rec = tf.io.parse_single_example(rec, features)
-
-    nx = tf.cast(parsed_rec['n_x'], tf.int32)
-    nz = tf.cast(parsed_rec['n_z'], tf.int32)
-
-    # Scaling data at wall
-
-    avg_wall = tfr_path + '/avg_wall.mat'
-
-    print('The inputs are normalized to have a unit Gaussian distribution')
-
-    data = sio.loadmat(avg_wall)
-
-    avgs_wall = tf.constant(data['mean_inputs'].astype(np.float32))
-    stds_wall = tf.constant(data['std_inputs'].astype(np.float32))
-
-    inputs = tf.reshape((parsed_rec['wall_raw1']-avgs_wall[0])/stds_wall[0],(1,nz, nx))
-
-    for i_comp in range(1, channels):
-
-        inputs = tf.concat((inputs, tf.reshape((parsed_rec[f'wall_raw{i_comp+1}']-avgs_wall[i_comp])/stds_wall[i_comp],(1,nz, nx))),0)
-
-    outputs = parsed_rec['psi'][:n_modes]
-    #inputs = inputs[:,::filter_size,::filter_size]
-    inputs = mean_filter(inputs,filter_size)
-    return inputs, outputs
+    img = tf.reshape(vector, (channel, rows, cols))
+    print(img.shape)
+    #img = tf.convert_to_tensor(img)
+    return img

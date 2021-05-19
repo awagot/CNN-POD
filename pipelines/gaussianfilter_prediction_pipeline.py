@@ -15,7 +15,7 @@ import cv2
 
 
 
-def generate_meanfilter_training_pipeline(tfr_path, channels, n_modes, filter_size, validation_split=0.2, batch_size=8, shuffle_buffer=400, n_prefetch=4, cpu=False):
+def generate_gaussianfilter_prediction_pipeline(tfr_path, channels, n_modes, filter_size, kernel, validation_split=0.2, batch_size=8, shuffle_buffer=400, n_prefetch=4, cpu=False):
 
     # List all files in tfr_path folder
 
@@ -69,8 +69,8 @@ def generate_meanfilter_training_pipeline(tfr_path, channels, n_modes, filter_si
         n_samples_loaded_per_tfr.append(tot_samples_per_ds)
 
     n_samples_loaded_per_tfr = np.array(n_samples_loaded_per_tfr)
-    tfr_files_train_ds = tf.data.Dataset.list_files(tfr_files_train, seed=666)
-    tfr_files_val_ds = tf.data.Dataset.list_files(tfr_files_valid, seed=686)
+    tfr_files_train_ds = tf.data.Dataset.list_files(tfr_files_train, shuffle = False)
+    tfr_files_val_ds = tf.data.Dataset.list_files(tfr_files_valid, shuffle = False)
 
     if n_tfr_left-1>0:
 
@@ -96,19 +96,19 @@ def generate_meanfilter_training_pipeline(tfr_path, channels, n_modes, filter_si
 
     if cpu:
 
-        dataset_train = tfr_files_train_ds.map(lambda x: tf_parser_training_cpu(x, tfr_path, channels, n_modes, filter_size), num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        dataset_valid = tfr_files_val_ds.map(lambda x: tf_parser_training_cpu(x, tfr_path, channels, n_modes, filter_size), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        dataset_train = tfr_files_train_ds.map(lambda x: tf_parser_training_cpu(x, tfr_path, channels, n_modes, filter_size, kernel), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        dataset_valid = tfr_files_val_ds.map(lambda x: tf_parser_training_cpu(x, tfr_path, channels, n_modes, filter_size, kernel), num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     else:
 
-        dataset_train = tfr_files_train_ds.map(lambda x: tf_parser_training(x, tfr_path, channels, n_modes, filter_size), num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        dataset_valid = tfr_files_val_ds.map(lambda x: tf_parser_training(x, tfr_path, channels, n_modes, filter_size), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        dataset_train = tfr_files_train_ds.map(lambda x: tf_parser_training(x, tfr_path, channels, n_modes, filter_size, kernel), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        dataset_valid = tfr_files_val_ds.map(lambda x: tf_parser_training(x, tfr_path, channels, n_modes, filter_size, kernel), num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-    dataset_train = dataset_train.shuffle(shuffle_buffer)
+    #dataset_train = dataset_train.shuffle(shuffle_buffer)
     dataset_train = dataset_train.batch(batch_size=batch_size)
     dataset_train = dataset_train.prefetch(n_prefetch)
     
-    dataset_valid = dataset_valid.shuffle(shuffle_buffer)
+    #dataset_valid = dataset_valid.shuffle(shuffle_buffer)
     dataset_valid = dataset_valid.batch(batch_size=batch_size)
     dataset_valid = dataset_valid.prefetch(n_prefetch)
 
@@ -137,37 +137,12 @@ def mean_filter(A, filter_size):
     return img
 
 
-def mean_filter2(A, filter_size):
-    channel, n_z, n_x = A.shape
-    n_z = 64
-    n_x = 128
-    rows = n_z//filter_size
-    cols = n_x//filter_size
-    block = tf.zeros([filter_size, filter_size])
-    img = np.zeros((channel, rows,cols))
-    vector = []
-    #kernel = tf.ones([filter_size, filter_size])
-    #kernel = kernel/filter_size**2
-    F_1 = cv2.getGaussianKernel(ksize=filter_size,sigma=2)
-    kernel = F_1*np.transpose(F_1)
-    for ch in range(0,channel):
-        for j in range(0, n_z - filter_size + 1, filter_size):
-            for i in range(0,n_x - filter_size + 1, filter_size):
-                block = A[ch, j:j+filter_size,i:i+filter_size]
-                block_mean = tf.reduce_sum(block*kernel)
-                print(block_mean)
-                #block_mean = tf.reduce_mean(block)
-                vector.append(block_mean)
 
-    img = tf.reshape(vector, (channel, rows, cols))
-    print(img.shape)
-    #img = tf.convert_to_tensor(img)
-    return img
 
 
 
 @tf.function
-def tf_parser_training(rec, tfr_path, channels, n_modes, filter_size):
+def tf_parser_training(rec, tfr_path, channels, n_modes, filter_size, kernel):
     '''
     This is a parser function. It defines the template for
     interpreting the examples you're feeding in. Basically, 
@@ -213,13 +188,13 @@ def tf_parser_training(rec, tfr_path, channels, n_modes, filter_size):
 
     outputs = parsed_rec['psi'][:n_modes]
     #inputs = inputs[:,::filter_size,::filter_size]
-    inputs = mean_filter(inputs,filter_size)
+    inputs = mean_filter2(inputs,filter_size,nz,nx)
     #inputs = cv2.blur(inputs,(filter_size,filter_size))
     return inputs, outputs
 
 
 @tf.function
-def tf_parser_training_cpu(rec, tfr_path, channels, n_modes, filter_size):
+def tf_parser_training_cpu(rec, tfr_path, channels, n_modes, filter_size, kernel):
     '''
     This is a parser function. It defines the template for
     interpreting the examples you're feeding in. Basically, 

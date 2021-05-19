@@ -26,26 +26,44 @@ from models import model_cnn_mlp
 from pipelines import generate_default_training_pipeline
 from pipelines import generate_downsampling_training_pipeline
 from pipelines import generate_meanfilter_training_pipeline
+from pipelines import generate_gaussianfilter_training_pipeline
 from training import training_loop
 
 
 
 def main():
+    run_training(f'gaussianfilter{ksize}',ksize)
+    run_training(f'downsample{ksize}',ksize)
+    
+    run_training(f'meanfilter{ksize}',ksize)
+    run_training('No Filter',1)
+    return
+
+def run_training(model_name, ksize):
     #dataset_train, dataset_valid = generate_default_training_pipeline(tfr_path, channels, n_modes, validation_split, batch_size, shuffle_buffer, n_prefetch, cpu=False)
     """
         Define training pipelines
     """
     if model_name == "downsample2" or model_name == "downsample4" or model_name == "downsample8" or model_name == "downsample16":
-        print('Downsampling')
-        dataset_train, dataset_valid = generate_downsampling_training_pipeline(tfr_path, channels, n_modes, downsample_value, validation_split, batch_size, shuffle_buffer, n_prefetch, cpu=False)
-        n_z = nz//downsample_value
-        n_x = nx//downsample_value
+        print('Downsampling', ksize)
+        dataset_train, dataset_valid = generate_downsampling_training_pipeline(tfr_path, channels, n_modes, ksize, validation_split, batch_size, shuffle_buffer, n_prefetch, cpu=False)
+        n_z = nz//ksize
+        n_x = nx//ksize
     if model_name == "meanfilter2" or model_name == "meanfilter4" or model_name == "meanfilter8" or model_name == "meanfilter16":
-        print('Mean Filter')
-        dataset_train, dataset_valid = generate_meanfilter_training_pipeline(tfr_path, channels, n_modes, filter_size, validation_split, batch_size, shuffle_buffer, n_prefetch, cpu=False)
-        n_z = nz//filter_size
-        n_x = nx//filter_size
-
+        print('Mean Filter',ksize)
+        dataset_train, dataset_valid = generate_meanfilter_training_pipeline(tfr_path, channels, n_modes, ksize, validation_split, batch_size, shuffle_buffer, n_prefetch, cpu=False)
+        n_z = nz//ksize
+        n_x = nx//ksize
+    if model_name == "gaussianfilter2" or model_name == "gaussianfilter4" or model_name == "gaussianfilter8" or model_name == "gaussianfilter16":
+        print('Gaussian Filter', ksize)
+        dataset_train, dataset_valid = generate_gaussianfilter_training_pipeline(tfr_path, channels, n_modes, ksize, validation_split, batch_size, shuffle_buffer, n_prefetch, cpu=False)
+        n_z = nz//ksize
+        n_x = nx//ksize
+    if model_name == 'No Filter':
+        print('No Filter')
+        dataset_train, dataset_valid = generate_default_training_pipeline(tfr_path, channels, n_modes, validation_split, batch_size, shuffle_buffer, n_prefetch, cpu=False)
+        n_z = nz
+        n_x = nx
 
     """
         Define model
@@ -58,7 +76,6 @@ def main():
     """
         Training loop
     """
-
     training_loop(dataset_train, dataset_valid, save_path, model_name, model, optimizer, model_loss, epochs)
 
     # model_name = f"Ret_flow-reconstruction_yp{yp_flow:03d}"
@@ -105,10 +122,9 @@ if __name__ == "__main__":
     channels = 3 
     n_prefetch = 4
     batch_size = 50
-    save_path = "/home/awag/Documents/TFG/Checkpoints/D15/"
-    model_name = 'meanfilter2'
-    downsample_value = 4
-    filter_size = 2
+    save_path = "/home/awag/Documents/TFG/Checkpoints/"
+    model_name = 'meanfilter4'
+    ksize = 2
     tfr_path = "/home/awag/Documents/TFG/DATA/TFRECORD/D15/"
     shuffle_buffer = 5000
     validation_split = 0.2
